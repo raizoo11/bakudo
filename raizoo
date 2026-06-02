@@ -1,0 +1,749 @@
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+
+getgenv().AutoLostDoge = false
+getgenv().AutoTraining = false
+getgenv().AutoRoadwalk = false
+getgenv().AutoCurlUps = false
+getgenv().AutoPunchBag = false
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FarmGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player.PlayerGui
+
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.Size = UDim2.new(0, 200, 0, 420)
+Frame.Position = UDim2.new(0, 20, 0.5, -210)
+Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+
+local DogeButton = Instance.new("TextButton")
+DogeButton.Parent = Frame
+DogeButton.Size = UDim2.new(1,-20,0,40)
+DogeButton.Position = UDim2.new(0,10,0,10)
+DogeButton.Text = "Lost Doge OFF"
+DogeButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+DogeButton.TextColor3 = Color3.new(1,1,1)
+
+local TrainButton = Instance.new("TextButton")
+TrainButton.Parent = Frame
+TrainButton.Size = UDim2.new(1,-20,0,40)
+TrainButton.Position = UDim2.new(0,10,0,60)
+TrainButton.Text = "Training OFF"
+TrainButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+TrainButton.TextColor3 = Color3.new(1,1,1)
+
+local CurlUpsButton = Instance.new("TextButton")
+CurlUpsButton.Parent = Frame
+CurlUpsButton.Size = UDim2.new(1,-20,0,40)
+CurlUpsButton.Position = UDim2.new(0,10,0,110)
+CurlUpsButton.Text = "CurlUps OFF"
+CurlUpsButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+CurlUpsButton.TextColor3 = Color3.new(1,1,1)
+
+local PunchBagButton = Instance.new("TextButton")
+PunchBagButton.Parent = Frame
+PunchBagButton.Size = UDim2.new(1,-20,0,40)
+PunchBagButton.Position = UDim2.new(0,10,0,160)
+PunchBagButton.Text = "PunchBag OFF"
+PunchBagButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+PunchBagButton.TextColor3 = Color3.new(1,1,1)
+
+local RoadwalkButton = Instance.new("TextButton")
+RoadwalkButton.Parent = Frame
+RoadwalkButton.Size = UDim2.new(1,-20,0,40)
+RoadwalkButton.Position = UDim2.new(0,10,0,210)
+RoadwalkButton.Text = "Roadwalk OFF"
+RoadwalkButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+RoadwalkButton.TextColor3 = Color3.new(1,1,1)
+
+local GymButton = Instance.new("TextButton")
+GymButton.Parent = Frame
+GymButton.Size = UDim2.new(1,-20,0,40)
+GymButton.Position = UDim2.new(0,10,0,260)
+GymButton.Text = "Teleport Gym"
+GymButton.BackgroundColor3 = Color3.fromRGB(0,100,200)
+GymButton.TextColor3 = Color3.new(1,1,1)
+
+local PoliceButton = Instance.new("TextButton")
+PoliceButton.Parent = Frame
+PoliceButton.Size = UDim2.new(1,-20,0,40)
+PoliceButton.Position = UDim2.new(0,10,0,310)
+PoliceButton.Text = "Teleport Police"
+PoliceButton.BackgroundColor3 = Color3.fromRGB(0,100,200)
+PoliceButton.TextColor3 = Color3.new(1,1,1)
+
+local NoclipButton = Instance.new("TextButton")
+NoclipButton.Parent = Frame
+NoclipButton.Size = UDim2.new(1,-20,0,40)
+NoclipButton.Position = UDim2.new(0,10,0,360)
+NoclipButton.Text = "Noclip OFF"
+NoclipButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+NoclipButton.TextColor3 = Color3.new(1,1,1)
+
+--------------------------------------------------
+-- HELPER
+--------------------------------------------------
+
+local function isOccupied(pos)
+    for _, otherPlayer in pairs(Players:GetPlayers()) do
+        if otherPlayer ~= player then
+            local otherChar = otherPlayer.Character
+            if otherChar then
+                local otherPos = otherChar:GetPivot().Position
+                if (otherPos - pos).Magnitude < 10 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function getMachine()
+    for _, machine in pairs(workspace.Interactables.TrainingMachines:GetChildren()) do
+        if machine.Name == "StationaryBike" then
+            local machinePos
+            if machine:IsA("Model") then
+                machinePos = machine:GetPivot().Position
+            elseif machine:IsA("BasePart") then
+                machinePos = machine.Position
+            end
+            if machinePos and not isOccupied(machinePos) then
+                return machine
+            end
+        end
+    end
+    warn("Semua StationaryBike occupied!")
+    return nil
+end
+
+local function getCurlUpsMachine()
+    for _, machine in pairs(workspace.Interactables.TrainingMachines:GetChildren()) do
+        if machine.Name == "CurlUps" then
+            local machinePos
+            if machine:IsA("Model") then
+                machinePos = machine:GetPivot().Position
+            elseif machine:IsA("BasePart") then
+                machinePos = machine.Position
+            end
+            if machinePos and not isOccupied(machinePos) then
+                return machine
+            end
+        end
+    end
+    warn("Semua CurlUps occupied!")
+    return nil
+end
+
+local function getPunchBag()
+    local punchingBags = workspace.Alive.Players.PunchingBags
+    for _, bag in pairs(punchingBags:GetChildren()) do
+        if bag.Name:find("PunchingBag") then
+            local bagPos
+            if bag:IsA("Model") then
+                bagPos = bag:GetPivot().Position
+            elseif bag:IsA("BasePart") then
+                bagPos = bag.Position
+            end
+            if bagPos and not isOccupied(bagPos) then
+                return bag
+            end
+        end
+    end
+    warn("Semua PunchingBag occupied!")
+    return nil
+end
+
+local function getFatigue()
+    local ok, result = pcall(function()
+        local characterData = ReplicatedStorage:WaitForChild("CharacterData", 5)
+        if not characterData then return 0 end
+        local playerData = characterData:WaitForChild(player.Name, 5)
+        if not playerData then return 0 end
+        local data = playerData:WaitForChild("Data", 5)
+        if not data then return 0 end
+        local fatigue = data:WaitForChild("Fatigue", 5)
+        if not fatigue then return 0 end
+        return fatigue.Value
+    end)
+    if ok then return result else return 0 end
+end
+
+local function pressSpace()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+    task.wait(0.1)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+end
+
+local function pressE()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(0.1)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+local function leftClick()
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+    task.wait(0.05)
+    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+end
+
+local function teleportHospital()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hospital = ReplicatedStorage:WaitForChild("TravelLocation"):WaitForChild("Hospital")
+    if hospital:IsA("Model") then
+        character:PivotTo(hospital:GetPivot())
+    elseif hospital:IsA("BasePart") then
+        character:PivotTo(hospital.CFrame)
+    end
+    task.wait(2)
+end
+
+local function findAvailableBed()
+    local bedsFolder = workspace:WaitForChild("Interactables"):WaitForChild("Beds")
+    for _, v in pairs(bedsFolder:GetChildren()) do
+        if v.Name == "Hospital Bed" then
+            local bedPos
+            if v:IsA("Model") then
+                bedPos = v:GetPivot().Position
+            elseif v:IsA("BasePart") then
+                bedPos = v.Position
+            end
+            if bedPos and not isOccupied(bedPos) then
+                return v
+            end
+        end
+    end
+    return nil
+end
+
+local function handleFatigue()
+    teleportHospital()
+
+    local bed = findAvailableBed()
+    if not bed then
+        warn("Semua bed occupied! Teleport ulang...")
+        teleportHospital()
+        bed = findAvailableBed()
+    end
+
+    if not bed then
+        warn("Tidak ada bed kosong, fallback ke bed terdekat...")
+        local bedsFolder = workspace:WaitForChild("Interactables"):WaitForChild("Beds")
+        for _, v in pairs(bedsFolder:GetChildren()) do
+            if v.Name == "Hospital Bed" then
+                bed = v
+                break
+            end
+        end
+    end
+
+    if bed then
+        local character = player.Character or player.CharacterAdded:Wait()
+        if bed:IsA("Model") then
+            character:PivotTo(bed:GetPivot())
+        elseif bed:IsA("BasePart") then
+            character:PivotTo(bed.CFrame)
+        end
+        task.wait(0.5)
+
+        local main = bed:FindFirstChild("Main")
+        if main then
+            local prompt = main:FindFirstChild("ProximityPrompt")
+            if prompt then
+                fireproximityprompt(prompt)
+            end
+        end
+    else
+        warn("Hospital Bed tetap tidak ditemukan!")
+    end
+
+    repeat
+        task.wait(5)
+    until getFatigue() <= 1
+
+    task.wait(2)
+    pressSpace()
+    task.wait(1)
+
+    local character = player.Character or player.CharacterAdded:Wait()
+    local gym = workspace.Alive.NPCs.Gym
+    if gym:IsA("Model") then
+        character:PivotTo(gym:GetPivot())
+    else
+        character:PivotTo(gym.CFrame)
+    end
+    task.wait(1)
+end
+
+local function handleFatigueWithButton(button, onText, onColor)
+    button.Text = "Recovery..."
+    button.BackgroundColor3 = Color3.fromRGB(200,150,0)
+    handleFatigue()
+    button.Text = onText
+    button.BackgroundColor3 = onColor
+end
+
+local function checkAndHandleFatigue(button, onText, onColor)
+    if getFatigue() > 80 then
+        task.wait(1)
+        pressSpace()
+        task.wait(1)
+        handleFatigueWithButton(button, onText, onColor)
+        return true
+    end
+    return false
+end
+
+--------------------------------------------------
+-- LOST DOGE
+--------------------------------------------------
+
+local function getJobName()
+    local quest = player.PlayerGui:FindFirstChild("Quest")
+    if not quest then return nil end
+    local box = quest:FindFirstChild("Box")
+    if not box then return nil end
+    return box:FindFirstChild("JobName")
+end
+
+local function cancelQuest()
+    pcall(function()
+        firesignal(player.PlayerGui.Quest.Box.Cancel.MouseButton1Click)
+    end)
+end
+
+local function AutoLostDogeLoop()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local police = workspace.Alive.NPCs.Police
+    if police:IsA("Model") then
+        character:PivotTo(police:GetPivot())
+    else
+        character:PivotTo(police.CFrame)
+    end
+    task.wait(0.5)
+
+    while getgenv().AutoLostDoge do
+        local jobName = getJobName()
+        if not jobName or jobName.Text ~= "Lost Doge" then
+            if jobName then
+                cancelQuest()
+                task.wait(0.5)
+            end
+            character = player.Character or player.CharacterAdded:Wait()
+            character:PivotTo(workspace.Map.Markers.Jobboard2.CFrame)
+            task.wait(0.5)
+            fireproximityprompt(workspace.Interactables.JobBoards.JB2.awfdawdaw.ProximityPrompt)
+            task.wait(1)
+        else
+            character = player.Character or player.CharacterAdded:Wait()
+            if workspace.Map:FindFirstChild("Doge") then
+                local doge = workspace.Map.Doge
+                if doge:IsA("Model") then
+                    character:PivotTo(doge:GetPivot())
+                else
+                    character:PivotTo(doge.CFrame)
+                end
+            end
+            task.wait(1)
+        end
+    end
+end
+
+--------------------------------------------------
+-- TRAINING (StationaryBike - Stamina)
+--------------------------------------------------
+
+local function AutoTrainingLoop()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local gym = workspace.Alive.NPCs.Gym
+    if gym:IsA("Model") then
+        character:PivotTo(gym:GetPivot())
+    else
+        character:PivotTo(gym.CFrame)
+    end
+    task.wait(1)
+
+    while getgenv().AutoTraining do
+        checkAndHandleFatigue(TrainButton, "Training ON", Color3.fromRGB(0,170,0))
+
+        local success, err = pcall(function()
+            character = player.Character or player.CharacterAdded:Wait()
+            local machine = getMachine()
+            if not machine then task.wait(3) return end
+
+            if machine:IsA("Model") then
+                character:PivotTo(machine:GetPivot())
+            else
+                character:PivotTo(machine.CFrame)
+            end
+            task.wait(1.5)
+
+            fireproximityprompt(machine.Hold.ProximityPrompt)
+
+            local minigame = player.PlayerGui:WaitForChild("Minigame")
+            local choose = minigame:WaitForChild("Choose")
+            task.wait(1.5)
+
+            local staminaButton = choose.Holder.Stamina.Button
+            for _,v in pairs(getconnections(staminaButton.Activated)) do v:Fire() end
+            task.wait(1)
+
+            local currentKey = minigame.KeyPress.Frame.CurrentKey
+            local startTime = tick()
+
+            while getgenv().AutoTraining and tick() - startTime < 57 do
+                if getFatigue() > 80 then return end
+                local key = currentKey.Text
+                if key and key ~= "" then
+                    local enumKey = Enum.KeyCode[key:upper()]
+                    if enumKey then
+                        VirtualInputManager:SendKeyEvent(true, enumKey, false, game)
+                        task.wait(0.05)
+                        VirtualInputManager:SendKeyEvent(false, enumKey, false, game)
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+
+        if not success then warn(err) end
+        task.wait(1)
+    end
+end
+
+--------------------------------------------------
+-- CURLUPS (50 KG)
+--------------------------------------------------
+
+local function AutoCurlUpsLoop()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local gym = workspace.Alive.NPCs.Gym
+    if gym:IsA("Model") then
+        character:PivotTo(gym:GetPivot())
+    else
+        character:PivotTo(gym.CFrame)
+    end
+    task.wait(1)
+
+    while getgenv().AutoCurlUps do
+        checkAndHandleFatigue(CurlUpsButton, "CurlUps ON", Color3.fromRGB(0,170,0))
+
+        local success, err = pcall(function()
+            character = player.Character or player.CharacterAdded:Wait()
+            local machine = getCurlUpsMachine()
+            if not machine then task.wait(3) return end
+
+            if machine:IsA("Model") then
+                character:PivotTo(machine:GetPivot())
+            else
+                character:PivotTo(machine.CFrame)
+            end
+            task.wait(1.5)
+
+            fireproximityprompt(machine.Hold.ProximityPrompt)
+
+            local minigame = player.PlayerGui:WaitForChild("Minigame")
+            local choose = minigame:WaitForChild("Choose")
+            task.wait(1.5)
+
+            local staminaButton = choose.Holder["50 KG"].Button
+            for _,v in pairs(getconnections(staminaButton.Activated)) do v:Fire() end
+            task.wait(1)
+
+            local currentKey = minigame.KeyPress.Frame.CurrentKey
+            local startTime = tick()
+
+            while getgenv().AutoCurlUps and tick() - startTime < 57 do
+                if getFatigue() > 80 then return end
+                local key = currentKey.Text
+                if key and key ~= "" then
+                    local enumKey = Enum.KeyCode[key:upper()]
+                    if enumKey then
+                        VirtualInputManager:SendKeyEvent(true, enumKey, false, game)
+                        task.wait(0.05)
+                        VirtualInputManager:SendKeyEvent(false, enumKey, false, game)
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+
+        if not success then warn(err) end
+        task.wait(1)
+    end
+end
+
+--------------------------------------------------
+-- PUNCHBAG
+--------------------------------------------------
+
+local function AutoPunchBagLoop()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local gym = workspace.Alive.NPCs.Gym
+    if gym:IsA("Model") then
+        character:PivotTo(gym:GetPivot())
+    else
+        character:PivotTo(gym.CFrame)
+    end
+    task.wait(1)
+
+    -- Press E hanya sekali di awal sebelum loop
+    pressE()
+    task.wait(1)
+
+    while getgenv().AutoPunchBag do
+        checkAndHandleFatigue(PunchBagButton, "PunchBag ON", Color3.fromRGB(0,170,0))
+
+        local success, err = pcall(function()
+            character = player.Character or player.CharacterAdded:Wait()
+
+            local bag = getPunchBag()
+            if not bag then
+                task.wait(3)
+                return
+            end
+
+            -- Teleport ke punch bag
+            if bag:IsA("Model") then
+                character:PivotTo(bag:GetPivot())
+            else
+                character:PivotTo(bag.CFrame)
+            end
+            task.wait(2)
+
+            -- Fire proximity prompt
+            local prompt = bag:FindFirstChild("HumanoidRootPart") and
+                bag.HumanoidRootPart:FindFirstChild("ProximityPrompt")
+            if not prompt then
+                warn("ProximityPrompt tidak ditemukan!")
+                return
+            end
+            fireproximityprompt(prompt)
+            task.wait(2)
+
+            -- Pilih AttackSpeed
+            local minigame = player.PlayerGui:WaitForChild("Minigame")
+            local choose = minigame:WaitForChild("Choose")
+            task.wait(1.5)
+
+            local attackSpeedButton = choose.Holder.AttackSpeed.Button
+            for _,v in pairs(getconnections(attackSpeedButton.Activated)) do
+                v:Fire()
+            end
+            task.wait(1)
+
+            -- Click terus menerus selama 55 detik
+            local startTime = tick()
+            while getgenv().AutoPunchBag and tick() - startTime < 60 do
+                if getFatigue() > 80 then return end
+                leftClick()
+                task.wait(0.1)
+            end
+        end)
+
+        if not success then warn(err) end
+        task.wait(1)
+    end
+end
+
+--------------------------------------------------
+-- ROADWALK
+--------------------------------------------------
+
+local function AutoRoadwalkLoop()
+    while getgenv().AutoRoadwalk do
+        if getFatigue() > 80 then
+            handleFatigueWithButton(RoadwalkButton, "Roadwalk ON", Color3.fromRGB(0,170,0))
+        end
+
+        local character = player.Character or player.CharacterAdded:Wait()
+        local gym = workspace.Alive.NPCs.Gym
+        if gym:IsA("Model") then
+            character:PivotTo(gym:GetPivot())
+        else
+            character:PivotTo(gym.CFrame)
+        end
+        task.wait(2)
+
+        local buyArgs = {
+            [1] = "Misc",
+            [2] = "DialogueShop",
+            [3] = "Purchase",
+            [4] = {
+                [1] = {
+                    ["Price"] = 135,
+                    ["Quantity"] = 1,
+                    ["Item"] = "Roadwork"
+                }
+            }
+        }
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Server"):FireServer(unpack(buyArgs))
+        task.wait(2)
+
+        local startArgs = {
+            [1] = "Misc",
+            [2] = "Roadwork",
+            [3] = "Start"
+        }
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Server"):FireServer(unpack(startArgs))
+        task.wait(2)
+
+        while getgenv().AutoRoadwalk do
+            if getFatigue() > 80 then
+                handleFatigueWithButton(RoadwalkButton, "Roadwalk ON", Color3.fromRGB(0,170,0))
+                break
+            end
+
+            local checkpoint = workspace.Map:FindFirstChild("Roadwork") and
+                workspace.Map.Roadwork:FindFirstChild("Checkpoint_1612702060")
+
+            if checkpoint then
+                character = player.Character or player.CharacterAdded:Wait()
+                if checkpoint:IsA("Model") then
+                    character:PivotTo(checkpoint:GetPivot())
+                elseif checkpoint:IsA("BasePart") then
+                    character:PivotTo(checkpoint.CFrame)
+                end
+                task.wait(1)
+            else
+                break
+            end
+        end
+        task.wait(1)
+    end
+end
+
+--------------------------------------------------
+-- NOCLIP
+--------------------------------------------------
+
+local NoclipConnection
+local NoclipEnabled = false
+
+local function EnableNoclip()
+    NoclipEnabled = true
+    NoclipConnection = RunService.Stepped:Connect(function()
+        local character = player.Character
+        if character then
+            for _,v in pairs(character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function DisableNoclip()
+    NoclipEnabled = false
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
+        NoclipConnection = nil
+    end
+end
+
+--------------------------------------------------
+-- BUTTONS
+--------------------------------------------------
+
+DogeButton.MouseButton1Click:Connect(function()
+    getgenv().AutoLostDoge = not getgenv().AutoLostDoge
+    if getgenv().AutoLostDoge then
+        DogeButton.Text = "Lost Doge ON"
+        DogeButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+        task.spawn(AutoLostDogeLoop)
+    else
+        DogeButton.Text = "Lost Doge OFF"
+        DogeButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    end
+end)
+
+TrainButton.MouseButton1Click:Connect(function()
+    getgenv().AutoTraining = not getgenv().AutoTraining
+    if getgenv().AutoTraining then
+        TrainButton.Text = "Training ON"
+        TrainButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+        task.spawn(AutoTrainingLoop)
+    else
+        TrainButton.Text = "Training OFF"
+        TrainButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    end
+end)
+
+CurlUpsButton.MouseButton1Click:Connect(function()
+    getgenv().AutoCurlUps = not getgenv().AutoCurlUps
+    if getgenv().AutoCurlUps then
+        CurlUpsButton.Text = "CurlUps ON"
+        CurlUpsButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+        task.spawn(AutoCurlUpsLoop)
+    else
+        CurlUpsButton.Text = "CurlUps OFF"
+        CurlUpsButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    end
+end)
+
+PunchBagButton.MouseButton1Click:Connect(function()
+    getgenv().AutoPunchBag = not getgenv().AutoPunchBag
+    if getgenv().AutoPunchBag then
+        PunchBagButton.Text = "PunchBag ON"
+        PunchBagButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+        task.spawn(AutoPunchBagLoop)
+    else
+        PunchBagButton.Text = "PunchBag OFF"
+        PunchBagButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    end
+end)
+
+RoadwalkButton.MouseButton1Click:Connect(function()
+    getgenv().AutoRoadwalk = not getgenv().AutoRoadwalk
+    if getgenv().AutoRoadwalk then
+        RoadwalkButton.Text = "Roadwalk ON"
+        RoadwalkButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+        task.spawn(AutoRoadwalkLoop)
+    else
+        RoadwalkButton.Text = "Roadwalk OFF"
+        RoadwalkButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    end
+end)
+
+GymButton.MouseButton1Click:Connect(function()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local gym = workspace.Alive.NPCs.Gym
+    if gym:IsA("Model") then
+        character:PivotTo(gym:GetPivot())
+    else
+        character:PivotTo(gym.CFrame)
+    end
+end)
+
+PoliceButton.MouseButton1Click:Connect(function()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local police = workspace.Alive.NPCs.Police
+    if police:IsA("Model") then
+        character:PivotTo(police:GetPivot())
+    else
+        character:PivotTo(police.CFrame)
+    end
+end)
+
+NoclipButton.MouseButton1Click:Connect(function()
+    if NoclipEnabled then
+        DisableNoclip()
+        NoclipButton.Text = "Noclip OFF"
+        NoclipButton.BackgroundColor3 = Color3.fromRGB(170,0,0)
+    else
+        EnableNoclip()
+        NoclipButton.Text = "Noclip ON"
+        NoclipButton.BackgroundColor3 = Color3.fromRGB(0,170,0)
+    end
+end)
