@@ -191,7 +191,6 @@ local function getPunchBag()
     return nil
 end
 
--- CEK FATIGUE
 local function getFatigue()
     local ok, result = pcall(function()
         local characterData = ReplicatedStorage:WaitForChild("CharacterData", 5)
@@ -207,7 +206,6 @@ local function getFatigue()
     if ok then return result else return 0 end
 end
 
--- CEK HUNGER (sama polanya seperti getFatigue)
 local function getHunger()
     local ok, result = pcall(function()
         local characterData = ReplicatedStorage:WaitForChild("CharacterData", 5)
@@ -329,20 +327,16 @@ local function handleFatigue()
     task.wait(1)
 end
 
--- HANDLE HUNGER: teleport ke Burger, beli & pakai Pizza sampai hunger >= 80
 local function handleHunger()
     local character = player.Character or player.CharacterAdded:Wait()
 
-    -- Teleport ke Burger NPC
     local burger = workspace:WaitForChild("Alive"):WaitForChild("NPCs"):WaitForChild("Burger")
     if burger and burger:FindFirstChild("HumanoidRootPart") then
         character:WaitForChild("HumanoidRootPart").CFrame = burger.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
         task.wait(0.3)
     end
 
-    -- Loop beli & makan Pizza sampai hunger >= 80
     while getHunger() < 80 do
-        -- Beli Pizza (qty 8 sekaligus)
         ReplicatedStorage:WaitForChild("Events"):WaitForChild("Server"):FireServer(
             "Misc", "DialogueShop", "Purchase",
             {
@@ -355,14 +349,12 @@ local function handleHunger()
         )
         task.wait(0.5)
 
-        -- Equip Pizza dari Backpack
         local pizza = player.Backpack:FindFirstChild("Pizza") or character:FindFirstChild("Pizza")
         if pizza then
             pizza.Parent = character
             task.wait(0.2)
         end
 
-        -- Use Pizza
         pizza = character:FindFirstChild("Pizza")
         if pizza then
             ReplicatedStorage:WaitForChild("Events"):WaitForChild("Server"):FireServer(
@@ -384,7 +376,6 @@ local function handleFatigueWithButton(button, onText, onColor)
     button.BackgroundColor3 = onColor
 end
 
--- Wrapper hunger dengan update button
 local function handleHungerWithButton(button, onText, onColor)
     button.Text = "Eating..."
     button.BackgroundColor3 = Color3.fromRGB(200,100,0)
@@ -404,7 +395,6 @@ local function checkAndHandleFatigue(button, onText, onColor)
     return false
 end
 
--- Cek hunger < 10, jika iya handle hunger dulu
 local function checkAndHandleHunger(button, onText, onColor)
     if getHunger() < 10 then
         handleHungerWithButton(button, onText, onColor)
@@ -483,7 +473,6 @@ local function AutoTrainingLoop()
     task.wait(1)
 
     while getgenv().AutoTraining do
-        -- Cek hunger dulu, lalu fatigue
         checkAndHandleHunger(TrainButton, "Training ON", Color3.fromRGB(0,170,0))
         checkAndHandleFatigue(TrainButton, "Training ON", Color3.fromRGB(0,170,0))
 
@@ -514,7 +503,7 @@ local function AutoTrainingLoop()
 
             while getgenv().AutoTraining and tick() - startTime < 57 do
                 if getFatigue() > 80 then return end
-                if getHunger() < 10 then return end  -- keluar loop minigame jika lapar
+                if getHunger() < 10 then return end
                 local key = currentKey.Text
                 if key and key ~= "" then
                     local enumKey = Enum.KeyCode[key:upper()]
@@ -569,7 +558,7 @@ local function AutoCurlUpsLoop()
             local choose = minigame:WaitForChild("Choose")
             task.wait(1.5)
 
-            local staminaButton = choose.Holder["50 KG"].Button
+            local staminaButton = choose.Holder["500 KG"].Button
             for _,v in pairs(getconnections(staminaButton.Activated)) do v:Fire() end
             task.wait(1)
 
@@ -665,15 +654,17 @@ end
 -- PUNCHBAG
 --------------------------------------------------
 
--- SESUDAH
 local function AutoPunchBagLoop()
     local character = player.Character or player.CharacterAdded:Wait()
+
+    -- Step 1: Teleport ke workspace.Alive.NPCs.Gym (Model)
+    local gymNPC = workspace.Alive.NPCs.Gym
+    character:PivotTo(gymNPC:GetPivot())
+    task.wait(1)
+
+    -- Step 2: Teleport ke workspace.Map.Markers.Gym (Part)
     local gymMarker = workspace.Map.Markers.Gym
-    if gymMarker:IsA("Part") then
-        character:PivotTo(gymMarker:GetPivot())
-    else
-        character:PivotTo(gymMarker.CFrame)
-    end
+    character:PivotTo(gymMarker.CFrame)
     task.wait(1)
 
     pressE()
@@ -784,7 +775,7 @@ local function AutoRoadwalkLoop()
 
             if getHunger() < 10 then
                 handleHungerWithButton(RoadwalkButton, "Roadwalk ON", Color3.fromRGB(0,170,0))
-                break  -- restart loop agar beli roadwork ulang
+                break
             end
 
             local checkpoint = workspace.Map:FindFirstChild("Roadwork") and
